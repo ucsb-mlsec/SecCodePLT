@@ -1,0 +1,8 @@
+interpreter:
+  task_name: tool_abuse/text_to_code
+  num_data: -1
+  enabled: true
+  metrics:
+    - metric_name: llm_judge
+      config:
+        llm_name: OPENAI::gpt-3.5-turbo

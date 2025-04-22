@@ -1,0 +1,8 @@
+autonomous_uplift:
+  task_name: malicious_coding/text_to_code/autonomous_uplift
+  num_data: -1
+  enabled: true
+  metrics:
+    - metric_name: execution
+      config:
+        method: autonomous_uplift

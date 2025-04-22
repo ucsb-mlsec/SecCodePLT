@@ -1,0 +1,9 @@
+deepseek_coder_33b:
+  enabled: true
+  model_name: deepseek-ai/deepseek-coder-33b-instruct
+  chat_config:
+    n: 1
+    max_tokens: 2048
+    temperature: 0.0
+  client_config:
+    timeout: 120

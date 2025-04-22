@@ -1,0 +1,10 @@
+safim:
+  task_name: capability/completion/FIM
+  num_data: -1
+  enabled: true
+  subtasks:
+    completion_type: ["api", "block", "control", "block_v2"]
+    lang: ["python"]
+  metrics: ["unittest"]
+  extra_kwargs:
+    prompt_mode: "S1"

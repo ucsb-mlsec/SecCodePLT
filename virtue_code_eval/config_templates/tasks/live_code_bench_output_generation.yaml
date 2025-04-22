@@ -1,0 +1,7 @@
+live_code_bench_output_generation:
+  task_name: capability/generation/live_code_bench/output_generation
+  num_data: -1
+  enabled: true
+  subtasks:
+    difficulty: [ "easy","medium","hard" ]
+  metrics: [ "inout_prediction" ]

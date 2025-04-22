@@ -1,0 +1,8 @@
+redcode:
+  task_name: malicious_coding/text_to_code/redcode_gen
+  num_data: -1
+  enabled: true
+  metrics:
+    - metric_name: llm_judge
+      config:
+        llm_name: OPENAI::gpt-3.5-turbo

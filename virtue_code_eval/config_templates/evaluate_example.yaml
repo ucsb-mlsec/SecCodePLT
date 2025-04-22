@@ -1,0 +1,15 @@
+defaults:
+  - hydra_conf
+  - evaluate_base
+  - models:
+    - deepseek_coder_33b
+    - mixtral_8x22b
+    - llama31_70b_turbo
+  - tasks:
+    - autocomplete
+    - instruct
+    - apps
+    - mitre
+    - redcode
+    - canary_exploit
+  - _self_

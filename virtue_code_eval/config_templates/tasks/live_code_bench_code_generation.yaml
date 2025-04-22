@@ -1,0 +1,8 @@
+live_code_bench_code_generation:
+  task_name: capability/generation/live_code_bench/code_generation
+  num_data: -1
+  enabled: true
+  fewshot_num: 1
+  subtasks:
+    difficulty: [ "easy","medium","hard" ]
+  metrics: [ "unittest", "LoC" ]

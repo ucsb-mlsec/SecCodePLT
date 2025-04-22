@@ -1,0 +1,15 @@
+__pycache__/
+/server.ipynb
+/server_test.ipynb
+/version1.ipynb
+/runs
+/data/*/*_data
+/data/*/*.lock
+/log
+/tmp
+/out
+.idea
+.python-version
+.vscode/
+**/.env
+/website

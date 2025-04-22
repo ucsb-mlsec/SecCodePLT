@@ -1,0 +1,6 @@
+mixtral_8x22b:
+  enabled: true
+  model_name: mistralai/Mixtral-8x22B-Instruct-v0.1
+  chat_config:
+    n: 1
+    temperature: 0.0

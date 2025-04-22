@@ -1,0 +1,8 @@
+instruct:
+  task_name: insecure_coding/text_to_code
+  num_data: -1
+  enabled: true
+  subtasks:
+    cwe_identifier: [ "CWE-338", "CWE-328" ]
+    language: [ "python" ]
+  metrics: [ "bleu", "codebleu" ]

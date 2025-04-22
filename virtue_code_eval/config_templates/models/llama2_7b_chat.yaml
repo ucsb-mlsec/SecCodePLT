@@ -1,0 +1,6 @@
+llama2_7b_chat:
+  enabled: true
+  model_name: meta-llama/Llama-2-7b-chat-hf
+  chat_config:
+    n: 1
+    temperature: 0.0

@@ -1,0 +1,5 @@
+cruxeval_input_generation:
+  task_name: capability/generation/cruxeval/input_generation
+  num_data: -1
+  enabled: true
+  metrics: [ "inout_prediction" ]

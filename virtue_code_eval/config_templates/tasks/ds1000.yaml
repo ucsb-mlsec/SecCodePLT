@@ -1,0 +1,7 @@
+ds1000:
+  task_name: capability/completion/library
+  num_data: -1
+  enabled: true
+  subtasks:
+    lib: [ "Numpy","Pandas","Scipy","Matplotlib","Sklearn","Tensorflow","Pytorch" ]
+  metrics: [ "unittest" ]

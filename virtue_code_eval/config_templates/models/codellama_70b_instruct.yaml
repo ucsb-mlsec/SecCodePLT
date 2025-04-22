@@ -1,0 +1,6 @@
+codellama_70b_instruct:
+  enabled: true
+  model_name: codellama/CodeLlama-70b-Instruct-hf
+  chat_config:
+    n: 1
+    temperature: 0.0

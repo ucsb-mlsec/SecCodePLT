@@ -6,10 +6,12 @@ defaults:
     - mixtral_8x22b
     - llama31_70b_turbo
   - tasks:
-    - autocomplete
-    - instruct
-    - apps
-    - mitre
-    - redcode
-    - canary_exploit
+    - ours_autocomplete
+    - ours_instruct
+#    - autocomplete
+#    - instruct
+#    - apps
+#    - mitre
+#    - redcode
+#    - canary_exploit
   - _self_

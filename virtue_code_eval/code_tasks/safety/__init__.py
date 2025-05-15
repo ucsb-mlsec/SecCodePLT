@@ -13,6 +13,7 @@ from .generation.ours import (
     OursAutocompleteCursor,
     OursInstruct,
     OursInstructCursor,
+    juliet_autocomplete
 )
 from .generation.ours.text_to_code.helpfulness import OursAttackHelpfulness
 from .generation.tool_abuse import CyberSecEvalInterpreter
@@ -31,4 +32,5 @@ SAFETY_TASK_REGISTRY: dict[str, Type[Task]] = {
     "ours/text_to_code/instruct": OursInstruct,
     "ours/text_to_code/helpfulness": OursAttackHelpfulness,
     "ours/text_to_code/instruct_cursor": OursInstructCursor,
+    "ours/code_to_code/juliet_autocomplete": juliet_autocomplete,
 }

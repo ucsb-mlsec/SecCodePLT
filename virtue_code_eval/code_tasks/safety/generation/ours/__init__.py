@@ -4,3 +4,4 @@ from .code_to_code.autocomplete import (
 from .code_to_code.cursor import OursAutocompleteCursor as OursAutocompleteCursor
 from .text_to_code.cursor import OursInstructCursor as OursInstructCursor
 from .text_to_code.instruct import OursInstruct as OursInstruct
+from .code_to_code.juliet_autocomplete import juliet_autocomplete as juliet_autocomplete

@@ -10,6 +10,7 @@ from .generation.malicious_code import (
 )
 from .generation.ours import (
     OursAutocomplete,
+    OursArvoAutocomplete,
     OursAutocompleteCursor,
     OursInstruct,
     OursInstructCursor,
@@ -27,6 +28,7 @@ SAFETY_TASK_REGISTRY: dict[str, Type[Task]] = {
     "reasoning/exploitation": CyberSecEvalCanaryExploit,
     "tool_abuse/text_to_code": CyberSecEvalInterpreter,
     "ours/code_to_code/autocomplete": OursAutocomplete,
+    "ours/code_to_code/arvo_autocomplete": OursArvoAutocomplete,
     "ours/code_to_code/autocomplete_cursor": OursAutocompleteCursor,
     "ours/text_to_code/instruct": OursInstruct,
     "ours/text_to_code/helpfulness": OursAttackHelpfulness,

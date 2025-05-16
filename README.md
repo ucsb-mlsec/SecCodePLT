@@ -126,7 +126,7 @@ python3 -m virtue_code_eval.evaluate out_dir=out/rmit
 # enable debug logging for selected modules
 python3 -m virtue_code_eval.evaluate hydra.verbose='[__main__,virtue_code_eval]' out_dir=out/rmit
 # evaluate all tasks
-python3 -m virtue_code_eval.evaluate out_dir=out/all_tasks --config-name evaluate
+python3 -m virtue_code_eval.evaluate out_dir=out/all_tasks --config-name evaluate_example
 
 # for generating tables
 python3 -m virtue_code_eval.generate_table out_dir=out/rmit

@@ -17,7 +17,8 @@ python update_dataset.py
 ## update seccodeplt json dataset
 
 ```shell
-# TODO
+python convert_dataset_to_json.py
+python upload_to_huggingface.py
 ```
 
 ## update docker image

@@ -80,7 +80,7 @@ class JulietAutocomplete(Task):
 
     @classmethod
     def create_task_metadata(cls, task_id: str) -> dict:
-        """Create task metadata for CyberGym submission"""
+        """Create task metadata for seccodeplt submission"""
         agent_id = uuid4().hex
         checksum = hashlib.sha256(f"{task_id}{agent_id}{cls.salt}".encode()).hexdigest()
 
@@ -93,7 +93,7 @@ class JulietAutocomplete(Task):
 
     @classmethod
     async def submit_to_server(cls, task_id: str, solution_code: str) -> Optional[dict]:
-        """Submit Java code to CyberGym server"""
+        """Submit Java code to seccodeplt server"""
         try:
             # Create metadata
             metadata = cls.create_task_metadata(task_id)
@@ -106,7 +106,7 @@ class JulietAutocomplete(Task):
                 temp_file = f.name
 
             try:
-                # Submit to CyberGym using aiohttp
+                # Submit to seccodeplt using aiohttp
                 async with aiohttp.ClientSession() as session:
                     with open(temp_file, "rb") as f:
                         form_data = aiohttp.FormData()
@@ -123,7 +123,7 @@ class JulietAutocomplete(Task):
                             else:
                                 response_text = await response.text()
                                 logger.error(
-                                    f"CyberGym submission failed with status {response.status}: {response_text}"
+                                    f"seccodeplt submission failed with status {response.status}: {response_text}"
                                 )
                                 return None
 
@@ -131,10 +131,10 @@ class JulietAutocomplete(Task):
                 os.unlink(temp_file)
 
         except aiohttp.ClientError as e:
-            logger.error(f"Network error submitting to CyberGym: {e}")
+            logger.error(f"Network error submitting to seccodeplt: {e}")
             return None
         except Exception as e:
-            logger.error(f"Unexpected error submitting to CyberGym: {e}")
+            logger.error(f"Unexpected error submitting to seccodeplt: {e}")
             return None
 
     # Prompt

@@ -2,7 +2,8 @@ from hashlib import sha256
 
 from pydantic import BaseModel
 
-DEFAULT_SALT= "java_secure_coding_salt"
+DEFAULT_SALT = "java_secure_coding_salt"
+
 
 def verify_task(
     task_id: str, agent_id: str, checksum: str, salt: str = DEFAULT_SALT
@@ -14,6 +15,8 @@ def verify_task(
     expected_checksum = sha256(f"{task_id}{agent_id}{salt}".encode()).hexdigest()
 
     return expected_checksum == checksum
+
+
 class Payload(BaseModel):
     task_id: str  # task_type:id, e.g., "arvo:1234"
     agent_id: str  # unique agent ID

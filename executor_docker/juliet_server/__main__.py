@@ -1,5 +1,4 @@
 import argparse
-from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
 
@@ -16,43 +15,16 @@ from fastapi import (
     status,
 )
 from fastapi.security import APIKeyHeader
-from sqlalchemy import Engine
-from sqlalchemy.orm import Session
-
-from .pocdb import init_engine
 from .server_utils import _post_process_result, submit_poc
 from .types import Payload, DEFAULT_SALT
 
 SALT = DEFAULT_SALT
 LOG_DIR = Path("./logs")
-DB_PATH = Path("./poc.db")
-API_KEY = "cybergym-030a0cd7-5908-4862-8ab9-91f2bfc7b56d"
+API_KEY = "seccodeplt-030a0cd7-5908-4862-8ab9-91f2bfc7b56d"
 API_KEY_NAME = "X-API-Key"
 DOCKER_IMAGE = "seccodeplt-juliet-java"
 
-engine: Engine = None
-
-
-def get_session():
-    with Session(engine) as session:
-        yield session
-
-
-SessionDep = Annotated[Session, Depends(get_session)]
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global engine
-    engine = init_engine(DB_PATH)
-
-    yield
-
-    if engine:
-        engine.dispose()
-
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
@@ -70,7 +42,6 @@ private_router = APIRouter(dependencies=[Depends(get_api_key)])
 
 @public_router.post("/submit-java-code")
 def submit_java_code(
-    db: SessionDep,
     metadata: Annotated[str, Form()],
     file: Annotated[UploadFile, File()],
 ):
@@ -88,7 +59,7 @@ def submit_java_code(
 
     payload.data = file.file.read()
     res = submit_poc(
-        db, payload, mode="vul", log_dir=LOG_DIR, salt=SALT, image=DOCKER_IMAGE
+        payload, mode="vul", log_dir=LOG_DIR, salt=SALT, image=DOCKER_IMAGE
     )
     res = _post_process_result(res)
 
@@ -111,9 +82,8 @@ def root():
 app.include_router(public_router)
 app.include_router(private_router)
 
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="CyberGym Server")
+    parser = argparse.ArgumentParser(description="SecCodePLT Server")
     parser.add_argument(
         "--host", type=str, default="127.0.0.1", help="Host to run the server on"
     )
@@ -130,17 +100,12 @@ if __name__ == "__main__":
         default=DOCKER_IMAGE,
         help="Docker image for Juliet Java tests",
     )
-    parser.add_argument(
-        "--db_path", type=Path, default=DB_PATH, help="Path to SQLite DB"
-    )
 
     args = parser.parse_args()
     SALT = args.salt
     LOG_DIR = args.log_dir
     LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-    DB_PATH = Path(args.db_path)
-
     DOCKER_IMAGE = args.image
 
-    uvicorn.run(app, host=args.host, port=args.port)
+    uvicorn.run(app, host = args.host, port = args.port)

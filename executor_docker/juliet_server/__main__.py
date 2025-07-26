@@ -1,0 +1,146 @@
+import argparse
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Annotated
+
+import uvicorn
+from fastapi import (
+    APIRouter,
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    Security,
+    UploadFile,
+    status,
+)
+from fastapi.security import APIKeyHeader
+from sqlalchemy import Engine
+from sqlalchemy.orm import Session
+
+from cybergym.server.pocdb import init_engine
+from cybergym.server.server_utils import _post_process_result, submit_poc
+from cybergym.server.types import Payload
+
+SALT = "java_secure_coding_salt"
+LOG_DIR = Path("./logs")
+DB_PATH = Path("./poc.db")
+API_KEY = "cybergym-030a0cd7-5908-4862-8ab9-91f2bfc7b56d"
+API_KEY_NAME = "X-API-Key"
+DOCKER_IMAGE = "seccodeplt-juliet-java"
+
+engine: Engine = None
+
+
+def get_session():
+    with Session(engine) as session:
+        yield session
+
+
+SessionDep = Annotated[Session, Depends(get_session)]
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global engine
+    engine = init_engine(DB_PATH)
+
+    yield
+
+    if engine:
+        engine.dispose()
+
+
+app = FastAPI(lifespan=lifespan)
+
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+
+
+def get_api_key(api_key: str = Security(api_key_header)):
+    if api_key == API_KEY:
+        return api_key
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+
+
+public_router = APIRouter()
+private_router = APIRouter(dependencies=[Depends(get_api_key)])
+
+
+@public_router.post("/submit-java-code")
+def submit_java_code(
+    db: SessionDep,
+    metadata: Annotated[str, Form()],
+    file: Annotated[UploadFile, File()],
+):
+    """Submit Java code for CWE testing"""
+    try:
+        payload = Payload.model_validate_json(metadata)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid metadata format") from None
+
+    # Check if this is a Java task
+    if not payload.task_id.startswith("juliet-java:"):
+        raise HTTPException(
+            status_code=400, detail="This endpoint is only for Java tasks"
+        )
+
+    payload.data = file.file.read()
+    res = submit_poc(
+        db, payload, mode="vul", log_dir=LOG_DIR, salt=SALT, image=DOCKER_IMAGE
+    )
+    res = _post_process_result(res)
+
+    # Add Java-specific information to response
+    res["language"] = "java"
+    res["task_type"] = "code_completion"
+
+    return res
+
+
+@public_router.get("/")
+def root():
+    return {
+        "message": "SecCodePlt Server API",
+        "version": "1.0.0",
+        "endpoints": {"public": ["POST /submit-java-code"], "private": []},
+    }
+
+
+app.include_router(public_router)
+app.include_router(private_router)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="CyberGym Server")
+    parser.add_argument(
+        "--host", type=str, default="127.0.0.1", help="Host to run the server on"
+    )
+    parser.add_argument(
+        "--port", type=int, default=8666, help="Port to run the server on"
+    )
+    parser.add_argument("--salt", type=str, default=SALT, help="Salt for checksum")
+    parser.add_argument(
+        "--log_dir", type=Path, default=LOG_DIR, help="Directory to store logs"
+    )
+    parser.add_argument(
+        "--image",
+        type=str,
+        default=DOCKER_IMAGE,
+        help="Docker image for Juliet Java tests",
+    )
+    parser.add_argument(
+        "--db_path", type=Path, default=DB_PATH, help="Path to SQLite DB"
+    )
+
+    args = parser.parse_args()
+    SALT = args.salt
+    LOG_DIR = args.log_dir
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+    DB_PATH = Path(args.db_path)
+
+    DOCKER_IMAGE = args.image
+
+    uvicorn.run(app, host=args.host, port=args.port)

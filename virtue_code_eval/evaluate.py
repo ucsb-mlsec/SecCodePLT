@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import math
 import os
@@ -98,11 +99,11 @@ class Evaluator:
         data.raw_response = response
         data.response = post_response
 
-    def _async_run_model(self, model_chat_fn: callable, data: list[DataPoint]):
+    async def _async_run_model(self, model_chat_fn: callable, data: list[DataPoint]):
         # need to support multi-cycle generation
         # need to support n_sample>1
         # TODO: how to handle failure of model
-        responses = model_chat_fn([data_point.messages for data_point in data])
+        responses = await model_chat_fn([data_point.messages for data_point in data])
         for response, data_point in zip(responses, data):
             if response is None:
                 continue
@@ -146,7 +147,7 @@ class Evaluator:
         )
         return task
 
-    def async_evaluate_task(
+    async def async_evaluate_task(
         self, task_cfg: DictConfig, model: AsyncTogetherModel, results_out_dir: Path
     ):
         # init task
@@ -203,7 +204,7 @@ class Evaluator:
                 else:
                     data_to_generate.append(data_point)
             # generate
-            self._async_run_model(model, data_to_generate)
+            await self._async_run_model(model, data_to_generate)
             for data_point in data_to_generate:
                 if data_point.response is None:
                     logger.warning(
@@ -214,8 +215,9 @@ class Evaluator:
                     data_succeeded.append(data_point)
 
             # evaluate
+            await asyncio.gather(*[task.evaluate(data_point) for data_point in data_succeeded])
+            
             for data_point in data_succeeded:
-                task.evaluate(data_point)
                 # ignore raw_data to save space
                 data_point.raw_data = None
                 if data_point.id_ not in existing_ids:
@@ -305,7 +307,7 @@ class Evaluator:
 
         return results_for_task
 
-    def evaluate_model(self, model_cfg: DictConfig):
+    async def evaluate_model(self, model_cfg: DictConfig):
         # init model
         model = AsyncTogetherModel(
             model_cfg.model_name,
@@ -326,7 +328,7 @@ class Evaluator:
         for task_cfg in task_cfg_iter:
             if not task_cfg.enabled:
                 continue
-            results_for_task = self.async_evaluate_task(
+            results_for_task = await self.async_evaluate_task(
                 task_cfg, model, model_out_dir
             )
             results_for_model[task_cfg.task_name] = results_for_task
@@ -336,7 +338,7 @@ class Evaluator:
 
         return results_for_model
 
-    def evaluate(self):
+    async def evaluate(self):
         results = {}
         if isinstance(self.cfg.models, ListConfig):
             logger.warning("Old config format detected, please update to new format.")
@@ -346,7 +348,7 @@ class Evaluator:
         for model_cfg in model_cfg_iter:
             if not model_cfg.enabled:
                 continue
-            results_for_model = self.evaluate_model(model_cfg)
+            results_for_model = await self.evaluate_model(model_cfg)
             results[model_cfg.model_name] = results_for_model
 
         # save results
@@ -370,7 +372,7 @@ def main(cfg: DictConfig):
     logger.info(os.getcwd())
 
     evaluator = Evaluator(cfg)
-    evaluator.evaluate()
+    asyncio.run(evaluator.evaluate())
     evaluator.summary()
 
 

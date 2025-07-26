@@ -13,3 +13,4 @@ __pycache__/
 .vscode/
 **/.env
 /website
+/executor_docker/docker/java-env/dataset/

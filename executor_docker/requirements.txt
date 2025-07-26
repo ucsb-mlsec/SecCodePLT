@@ -1,0 +1,12 @@
+pydantic
+SQLAlchemy
+uvicorn
+fastapi
+docker
+requests
+pydantic_core
+huggingface-hub
+openai
+datasets
+python-dotenv
+httpx

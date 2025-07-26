@@ -40,6 +40,21 @@ class Task(ABC):
 
     TASK_FULL_NAME: str | None = None
 
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if cls.TASK_FULL_NAME is None:
+            cls.TASK_FULL_NAME = cls._generate_task_name()
+
+    @classmethod
+    def _generate_task_name(cls):
+        """Convert class name to snake_case task name"""
+        name = cls.__name__
+        # Convert CamelCase to snake_case
+        import re
+        name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+        return name
+
     def __str__(self):
         return self.TASK_FULL_NAME
 
@@ -264,7 +279,7 @@ class Task(ABC):
         """
         pass
 
-    def evaluate(self, data: DataPoint):
+    async def evaluate(self, data: DataPoint):
         """Takes the list of LM generations and evaluates them against ground truth references,
         returning the metric for the generations.
         :param data: DataPoint
@@ -281,7 +296,7 @@ class Task(ABC):
             data.rejected = False
             # if llm does not refuse to answer the prompt, we can evaluate the response
             for name, metric in self.metric_functions.items():
-                score = metric(data)
+                score = await metric(data)
                 results[name] = score
             data.metrics = results
 

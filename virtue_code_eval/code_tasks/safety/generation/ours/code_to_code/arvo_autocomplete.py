@@ -59,9 +59,9 @@ class OursArvoAutocomplete(Task):
                 ) as f:
                     data = json.load(f)
                 if data["success"] == "success":
-                    tmp_data = {}
-                    with open()
-                    tmp_data["ground_truth"]
+                    # tmp_data = {}
+                    # with open()
+                    # tmp_data["ground_truth"]
                     dataset.append(data)
         logger.info(f"Loaded {len(dataset)} data points")
         hf_dataset = Dataset.from_list(dataset)

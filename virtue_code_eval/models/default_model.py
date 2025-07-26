@@ -81,7 +81,7 @@ class AsyncTogetherModel:
         self.model_name = model_name
         self.chat_config = chat_config
 
-    def __call__(self, messages_lst: list[list[dict[str, str]]]) -> list[str | None]:
+    async def __call__(self, messages_lst: list[list[dict[str, str]]]) -> list[str | None]:
         """
         :param messages_lst: list of str
             list of messages to query the model
@@ -90,7 +90,7 @@ class AsyncTogetherModel:
             logger.debug(f"model [{TEST_MODEL_NAME}] reserved for testing")
             return ["Test Test"] * len(messages_lst)
 
-        responses = asyncio.run(self.batch_async_chat_completion(messages_lst))
+        responses = await self.batch_async_chat_completion(messages_lst)
 
         return responses
 

@@ -1,0 +1,6 @@
+together_server:
+  enabled: true
+  model_name: deepseek-ai/deepseek-coder-33b-instruct
+  client_config:
+    api_key: 7355608
+    base_url: http://4bd094a2-01.cloud.together.ai:54321/v1

@@ -1,0 +1,6 @@
+defaults:
+  - hydra_conf
+  - evaluate_base
+  - models:
+  - tasks:
+  - _self_

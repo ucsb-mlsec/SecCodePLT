@@ -5,4 +5,4 @@ gpt4o:
     api_key: ${oc.env:OPENAI_API_KEY}
     base_url: https://api.openai.com/v1
   chat_config:
-    temperature: 0.0
+    n: 1

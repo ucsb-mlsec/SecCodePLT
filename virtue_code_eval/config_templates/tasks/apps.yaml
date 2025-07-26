@@ -2,6 +2,4 @@ apps:
   task_name: capability/generation/difficulty
   num_data: -1
   enabled: true
-  subtasks:
-    difficulty: [ "introductory", "interview", "competition" ]
-  metrics: [ "unittest", "bleu" ]
+  metrics: [ "apps_tests", "bleu", "codebleu", "syntax_error_rate", "loc", "runtime" ]

@@ -1,0 +1,6 @@
+zhun_server:
+  enabled: true
+  model_name: meta-llama/Meta-Llama-3.1-8B-Instruct
+  client_config:
+    api_key: 299792458
+    base_url: http://gpublaze.ist.berkeley.edu:54321/v1

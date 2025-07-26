@@ -1,0 +1,10 @@
+arvo_autocomplete:
+  task_name: ours/code_to_code/arvo_autocomplete
+  num_data: -1
+  enabled: true
+  subtasks:
+    CWE_ID: ['179', '915', '1333', '200', '367', '770', '295', '77', '601', '22', '74', '78', '120', '281', '327', '352', '79', '94', '502', '863', '338', '862', '918', '611', '400', '732', '347', '95']
+  metrics:
+    - unittest
+  extra_kwargs:
+    include_security_policy: false # Include the security policy in the prompt

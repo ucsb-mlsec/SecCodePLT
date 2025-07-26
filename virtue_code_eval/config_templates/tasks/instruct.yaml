@@ -3,6 +3,5 @@ instruct:
   num_data: -1
   enabled: true
   subtasks:
-    cwe_identifier: [ "CWE-338", "CWE-328" ]
-    language: [ "python" ]
-  metrics: [ "bleu", "codebleu" ]
+    language: [ "python", "cpp", "c" ]
+  metrics: [ "bleu", "codebleu", "syntax_error_rate", "insecure_code_detector" ]

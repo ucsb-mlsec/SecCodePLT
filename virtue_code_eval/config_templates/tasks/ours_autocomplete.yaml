@@ -10,4 +10,4 @@ ours_autocomplete:
       config:
         llm_name: OPENAI::gpt-4o-mini
   extra_kwargs:
-    include_security_policy: true # Include the security policy in the prompt
+    include_security_policy: false # Include the security policy in the prompt

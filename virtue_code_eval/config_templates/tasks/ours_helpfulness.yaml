@@ -1,0 +1,6 @@
+ours_helpfulness:
+  task_name: ours/text_to_code/helpfulness
+  num_data: -1
+  enabled: true
+  metrics:
+    - Attack success(malicious)

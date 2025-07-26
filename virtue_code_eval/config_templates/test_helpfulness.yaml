@@ -1,0 +1,16 @@
+defaults:
+  - hydra_conf
+  - evaluate_base
+  - models:
+    - gpt4o
+  - tasks:
+    - ours_helpfulness
+  - _self_
+
+models:
+  gpt4o:
+    model_name: chatgpt-4o-latest
+
+batch_size: 1
+
+

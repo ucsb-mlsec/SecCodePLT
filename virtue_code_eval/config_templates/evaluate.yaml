@@ -1,0 +1,21 @@
+defaults:
+  - hydra_conf
+  - evaluate_base
+  - models:
+      - llama_2_7b_chat
+      - gpt4o
+      - deepseek_coder_33b
+      - mixtral_8x22b
+      - llama31_70b_turbo
+      - codellama_70b_instruct
+  - tasks:
+      - safim
+      - autocomplete
+      - instruct
+      - apps
+      - mitre
+      - redcode
+      - canary_exploit
+      - interpreter
+#      - autonomous_uplift
+  - _self_

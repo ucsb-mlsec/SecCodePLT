@@ -19,11 +19,11 @@ from fastapi.security import APIKeyHeader
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
-from cybergym.server.pocdb import init_engine
-from cybergym.server.server_utils import _post_process_result, submit_poc
-from cybergym.server.types import Payload
+from .pocdb import init_engine
+from .server_utils import _post_process_result, submit_poc
+from .types import Payload, DEFAULT_SALT
 
-SALT = "java_secure_coding_salt"
+SALT = DEFAULT_SALT
 LOG_DIR = Path("./logs")
 DB_PATH = Path("./poc.db")
 API_KEY = "cybergym-030a0cd7-5908-4862-8ab9-91f2bfc7b56d"

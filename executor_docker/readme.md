@@ -14,7 +14,7 @@ cd docker/java-env
 python update_dataset.py
 ```
 
-## update seccodeplt dataset
+## update seccodeplt json dataset
 
 ```shell
 # TODO
@@ -46,4 +46,8 @@ docker pull yuzhounie/seccodeplt-juliet-java:latest
 # run docker
 cd ..
 python -m juliet_server --host 127.0.0.1 --port 8666 --image seccodeplt-juliet-java:latest
+
+# some simple testing
+cd ..
+python evaluate_improved.py out_dir=./out/tmp tasks="[juliet_autocomplete]" models="[gpt4o]" batch_size=20 -cn evaluate_small
 ```

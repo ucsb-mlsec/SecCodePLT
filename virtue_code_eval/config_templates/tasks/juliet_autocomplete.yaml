@@ -1,6 +1,6 @@
 juliet_autocomplete:
-  task_name: ours/code_to_code/juliet_autocomplete
-  num_data: -1
+  task_name: juliet_autocomplete
+  num_data: 20
   enabled: true
   subtasks:
     CWE_ID: ['193','248','476','511','674','690','764','833','835']

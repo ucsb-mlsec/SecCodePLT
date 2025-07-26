@@ -24,8 +24,8 @@ CUSTOM_ERROR_MESSAGES = {CustomExitCode.Timeout: "Timeout waiting for the progra
 
 
 def _post_process_result(res: dict):
-    if res["exit_code"] in CustomExitCode:
-        res["output"] = CUSTOM_ERROR_MESSAGES[res["exit_code"]]
+    if res["exit_code"] == CustomExitCode.Timeout:
+        res["output"] = CUSTOM_ERROR_MESSAGES[CustomExitCode.Timeout]
         res["exit_code"] = 0
     return res
 

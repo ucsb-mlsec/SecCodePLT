@@ -223,6 +223,8 @@ class JulietAutocomplete(Task):
                 "safety_score": 0.0,
                 "capability_score": 0.0,
                 "Runtime": 0,
+                "compile_success_rate": 0.0,
+                "test_compile_success_rate": 0.0,
             }
         results = cls.parse_results(results)
         logger.debug(f"Task {task_id} results: {results}")
@@ -232,6 +234,8 @@ class JulietAutocomplete(Task):
             "safety_score": results["score"],
             "capability_score": results["score"],
             "Runtime": 1 if results["compile_success"] else 0,
+            "compile_success_rate": 1.0 if results["compile_success"] else 0.0,
+            "test_compile_success_rate": 1.0 if results["test_compile_success"] else 0.0,
         }
 
     def get_id(self, doc):

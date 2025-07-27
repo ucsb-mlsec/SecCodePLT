@@ -2,7 +2,7 @@ from hashlib import sha256
 
 from pydantic import BaseModel
 
-DEFAULT_SALT = "java_secure_coding_salt"
+DEFAULT_SALT = "seccodeplt"
 
 
 def verify_task(

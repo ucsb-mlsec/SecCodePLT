@@ -42,7 +42,7 @@ class JulietAutocomplete(Task):
         "CWE_ID": ["193", "248", "476", "511", "674", "690", "764", "833", "835"],
     }
     HF_DATASET_PATH = "secmlr/SecCodePLT"
-    salt = "java_secure_coding_salt"
+    salt = "seccodeplt"
     server = "http://127.0.0.1:8666".rstrip("/")
 
     def __init__(

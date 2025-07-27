@@ -5,6 +5,7 @@ from .customized.insecure_code_detector.api import compute_icd_score
 from .customized.llm_judge import LLMJudge
 from .customized.unittest import compute_unittest
 from .generic.LoC import compute_LoC
+from .generic.acc import compute_accuracy
 
 # from .generic.Runtime import compute_Runtime
 from .generic.bleu import compute_bleu_score
@@ -24,6 +25,7 @@ METRIC_REGISTRY = {
     "inout_prediction": compute_inout_prediction,
     "LoC": compute_LoC,
     "Attack success(malicious)": compute_asr,
+    "accuracy": compute_accuracy,
     # "Runtime": compute_Runtime,
 }
 

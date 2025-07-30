@@ -140,16 +140,19 @@ def run_juliet_java_container(
                 status_code=500, detail="Timeout waiting for Java test"
             ) from None
         except DockerException as e:
-            raise HTTPException(
-                status_code=500, detail=f"Java test error: {e}"
-            ) from None
+            print(f"[DEBUG] Docker error: {str(e)}")
+            return CustomExitCode.Timeout, str(e).encode("utf-8")
         except Exception as e:
             raise HTTPException(
                 status_code=500, detail=f"Unexpected Java test error: {e}"
             ) from None
         finally:
+            # Clean up the container if it exists
             if container:
-                container.remove(force=True)
+                try:
+                    container.remove(force=True)
+                except Exception as e:
+                    print(f"[DEBUG] Failed to remove container: {str(e)}")
 
         return exit_code, docker_output
 
@@ -159,28 +162,135 @@ def run_juliet_java_container(
         return 1, error_message.encode("utf-8")
 
 
+def run_juliet_java_patch_container(
+    task_id: str,
+    solution_path: Path,
+    docker_timeout: int = DEFAULT_DOCKER_TIMEOUT,
+    cmd_timeout: int = DEFAULT_CMD_TIMEOUT,
+    image: str = "seccodeplt-juliet-java",
+):
+    """
+    Run Juliet Java container to test complete patched code.
+    
+    Args:
+        task_id: Task ID in format "juliet-java:CWE835_Infinite_Loop__for_01_v2"
+        solution_path: Path to the complete patched Java file
+        docker_timeout: Docker container timeout
+        cmd_timeout: Command execution timeout
+        
+    Returns:
+        Tuple of (exit_code, docker_output)
+    """
+    print(f"[DEBUG] Starting Java patch test for task_id: {task_id}")
+    print(f"[DEBUG] Patched file: {solution_path}")
+
+    # Extract testcase info from task_id
+    try:
+        _, testcase_full = task_id.split(":", 1)
+
+        # Parse testcase name and variant
+        if (
+            testcase_full.endswith("_v0")
+            or testcase_full.endswith("_v1")
+            or testcase_full.endswith("_v2")
+        ):
+            base_name = testcase_full.rsplit("_", 1)[0]
+            variant = testcase_full.rsplit("_", 1)[1]
+        else:
+            raise ValueError(f"Invalid testcase format: {testcase_full}")
+
+        testcase_dir = f"/workspace/dataset/{base_name}"
+        print(f"[DEBUG] Using testcase directory: {testcase_dir}")
+
+        # Find test file (we only need the test, not the template)
+        test_file = testcase_dir + f"/{base_name}_{variant}_Test.java"
+        print(f"[DEBUG] Looking for test file: {test_file}")
+
+        # Read patched code
+        patched_code = solution_path.read_text()
+        print(f"[DEBUG] Patched code length: {len(patched_code)} characters")
+
+        # Use Docker to test the complete patched file
+        client = docker.from_env()
+        container = None
+
+        try:
+            # Encode patched code as base64 to avoid shell escaping issues
+            encoded_patched = base64.b64encode(patched_code.encode("utf-8")).decode(
+                "ascii"
+            )
+
+            # Run Docker command using compile-and-test-patch.sh script
+            cmd = [
+                "bash",
+                "-c",
+                f"echo '{encoded_patched}' | base64 -d > /workspace/patched.java && cd /workspace && /usr/local/bin/compile-and-test-patch.sh {test_file} patched.java",
+            ]
+
+            container = client.containers.run(
+                image=image,
+                command=cmd,
+                detach=True,
+            )
+
+            out = container.logs(stdout=True, stderr=False, stream=True, follow=True)
+            exit_code = container.wait(timeout=docker_timeout)["StatusCode"]
+
+            # Collect all output
+            outputs = []
+            for log_chunk in out:
+                outputs.append(log_chunk)
+
+            return exit_code, b"".join(outputs)
+
+        except DockerException as e:
+            print(f"[DEBUG] Docker error in patch container: {str(e)}")
+            return CustomExitCode.Timeout, str(e).encode("utf-8")
+        finally:
+            # Clean up the container if it exists
+            if container:
+                try:
+                    container.remove(force=True)
+                except Exception as e:
+                    print(f"[DEBUG] Failed to remove patch container: {str(e)}")
+
+    except Exception as e:
+        print(f"[DEBUG] Exception in patch container: {str(e)}")
+        return 1, str(e).encode("utf-8")
+
+
 def run_container(
     task_id: str,
     poc_path: Path,
-    mode: Literal["vul", "fix"],
+    mode: Literal["vul", "fix", "patch"],
     docker_timeout: int = DEFAULT_DOCKER_TIMEOUT,
     cmd_timeout: int = DEFAULT_CMD_TIMEOUT,
     **kwargs,
 ):
     if task_id.startswith("juliet-java:"):
-        # For Java tasks, we only support "vul" mode (testing)
+        # For Java tasks, we support "vul" (autocomplete) and "patch" modes
         if mode == "fix":
             raise HTTPException(
                 status_code=400, detail="Fix mode not supported for Java tasks"
             )
         image = kwargs.get("image", "seccodeplt-juliet-java")
-        return run_juliet_java_container(
-            task_id,
-            poc_path,
-            docker_timeout=docker_timeout,
-            cmd_timeout=cmd_timeout,
-            image=image,
-        )
+        
+        if mode == "patch":
+            return run_juliet_java_patch_container(
+                task_id,
+                poc_path,
+                docker_timeout=docker_timeout,
+                cmd_timeout=cmd_timeout,
+                image=image,
+            )
+        else:
+            return run_juliet_java_container(
+                task_id,
+                poc_path,
+                docker_timeout=docker_timeout,
+                cmd_timeout=cmd_timeout,
+                image=image,
+            )
     else:
         raise HTTPException(status_code=400, detail="Invalid task_id")
 

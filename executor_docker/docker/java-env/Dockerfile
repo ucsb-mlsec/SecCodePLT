@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     bc \
     python3 \
     vim \
+    bash \
     && rm -rf /var/lib/apt/lists/*
 
 # set up workspace
@@ -30,6 +31,7 @@ RUN cd /workspace && mvn compile -q
 
 # execute tests
 COPY compile-and-test.sh /usr/local/bin/
+COPY compile-and-test-patch.sh /usr/local/bin/
 COPY test-runner.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/*.sh
 

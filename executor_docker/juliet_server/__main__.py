@@ -70,12 +70,42 @@ def submit_java_code(
     return res
 
 
+@public_router.post("/submit-java-patch")
+def submit_java_patch(
+    metadata: Annotated[str, Form()],
+    file: Annotated[UploadFile, File()],
+):
+    """Submit complete Java file for patch testing (no template insertion)"""
+    try:
+        payload = Payload.model_validate_json(metadata)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid metadata format") from None
+
+    # Check if this is a Java task
+    if not payload.task_id.startswith("juliet-java:"):
+        raise HTTPException(
+            status_code=400, detail="This endpoint is only for Java tasks"
+        )
+
+    payload.data = file.file.read()
+    res = submit_poc(
+        payload, mode="patch", log_dir=LOG_DIR, salt=SALT, image=DOCKER_IMAGE
+    )
+    res = _post_process_result(res)
+
+    # Add Java-specific information to response
+    res["language"] = "java"
+    res["task_type"] = "patch_generation"
+
+    return res
+
+
 @public_router.get("/")
 def root():
     return {
         "message": "SecCodePlt Server API",
         "version": "1.0.0",
-        "endpoints": {"public": ["POST /submit-java-code"], "private": []},
+        "endpoints": {"public": ["POST /submit-java-code", "POST /submit-java-patch"], "private": []},
     }
 
 

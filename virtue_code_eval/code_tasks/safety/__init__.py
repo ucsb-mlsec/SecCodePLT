@@ -14,7 +14,8 @@ from .generation.ours import (
     OursAutocompleteCursor,
     OursInstruct,
     OursInstructCursor,
-    JulietAutocomplete
+    JulietAutocomplete,
+    JulietPatch
 )
 from .generation.ours.text_to_code.helpfulness import OursAttackHelpfulness
 from .generation.tool_abuse import CyberSecEvalInterpreter

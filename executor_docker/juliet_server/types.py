@@ -12,7 +12,18 @@ def verify_task(
     Verify the task by checking if the task_id, agent_id, and checksum are valid.
     """
     # Generate the expected checksum
-    expected_checksum = sha256(f"{task_id}{agent_id}{salt}".encode()).hexdigest()
+    input_string = f"{task_id}{agent_id}{salt}"
+    expected_checksum = sha256(input_string.encode()).hexdigest()
+    
+    # Debug information
+    print(f"[DEBUG] verify_task:")
+    print(f"  task_id: {task_id}")
+    print(f"  agent_id: {agent_id}")
+    print(f"  salt: {salt}")
+    print(f"  input_string: {input_string}")
+    print(f"  expected_checksum: {expected_checksum}")
+    print(f"  received_checksum: {checksum}")
+    print(f"  match: {expected_checksum == checksum}")
 
     return expected_checksum == checksum
 

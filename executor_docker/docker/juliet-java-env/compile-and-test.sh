@@ -6,7 +6,7 @@
 set -e
 
 # Set JAVA_HOME environment variable
-export JAVA_HOME=/usr/local/openjdk-17
+export JAVA_HOME=${JAVA_HOME:-/opt/java/openjdk}
 export PATH="$JAVA_HOME/bin:$PATH"
 
 # Set Maven local repository to a temporary location
@@ -150,16 +150,85 @@ content = re.sub(r'(private\s+[\w<>\[\],\s]+\s+\w+\s*\([^)]*\))(?!\s*throws)(\s*
 # 5. Handle any other public void methods in test files (catch-all)
 content = re.sub(r'(public\s+void\s+\w+\s*\([^)]*\))(?!\s*throws)(\s*\{)', r'\1 throws Throwable\2', content)
 
-# Handle lambda expressions that call methods throwing Throwable
-# Wrap lambda bodies in try-catch blocks if they contain method calls
-if 'captureStdOut(() -> {' in content:
-    # Find all lambda expressions and wrap their content in try-catch
-    content = re.sub(
-        r'(captureStdOut\(\(\) -> \{)(.*?)(\}\))',
-        r'\1\n            try {\2\n            } catch (Throwable t) {\n                throw new RuntimeException(t);\n            }\3',
-        content,
-        flags=re.DOTALL
-    )
+# Handle captureStdOut lambdas that may call methods throwing Throwable
+def wrap_capture_stdout_lambdas(src: str) -> str:
+    marker = 'captureStdOut(() ->'
+    out = []
+    cursor = 0
+
+    while True:
+        idx = src.find(marker, cursor)
+        if idx == -1:
+            out.append(src[cursor:])
+            break
+
+        out.append(src[cursor:idx])
+
+        start_paren = idx + len('captureStdOut')
+        if start_paren >= len(src) or src[start_paren] != '(':
+            out.append(src[idx:idx + len(marker)])
+            cursor = idx + len(marker)
+            continue
+
+        depth = 1
+        pos = start_paren + 1
+        while pos < len(src) and depth > 0:
+            if src[pos] == '(':
+                depth += 1
+            elif src[pos] == ')':
+                depth -= 1
+            pos += 1
+
+        if depth != 0:
+            out.append(src[idx:])
+            break
+
+        close_paren = pos - 1
+        inside = src[start_paren + 1:close_paren]
+        m = re.match(r'\s*\(\s*\)\s*->\s*(.*)\s*$', inside, flags=re.DOTALL)
+        if not m:
+            out.append(src[idx:close_paren + 1])
+            cursor = close_paren + 1
+            continue
+
+        rhs = m.group(1).strip()
+
+        if 'catch (Throwable t)' in rhs:
+            out.append(src[idx:close_paren + 1])
+            cursor = close_paren + 1
+            continue
+
+        if rhs.startswith('{') and rhs.endswith('}'):
+            body = rhs[1:-1].strip('\n')
+            wrapped = (
+                'captureStdOut(() -> {\n'
+                '            try {\n'
+                f'{body}\n'
+                '            } catch (Throwable t) {\n'
+                '                throw new RuntimeException(t);\n'
+                '            }\n'
+                '        })'
+            )
+        else:
+            statement = rhs
+            if not statement.endswith(';'):
+                statement += ';'
+            wrapped = (
+                'captureStdOut(() -> {\n'
+                '            try {\n'
+                f'                {statement}\n'
+                '            } catch (Throwable t) {\n'
+                '                throw new RuntimeException(t);\n'
+                '            }\n'
+                '        })'
+            )
+
+        out.append(wrapped)
+        cursor = close_paren + 1
+
+    return ''.join(out)
+
+content = wrap_capture_stdout_lambdas(content)
 
 # Fix static method calls - if test is calling ClassName.methodName(), create instance instead
 # Extract class name from the test file name instead of template file
@@ -209,8 +278,10 @@ echo "✓ Test compilation successful"
 
 # Run tests
 echo "=== Running tests ==="
+set +e
 TEST_OUTPUT=$(timeout $TIMEOUT_DURATION mvn test 2>&1)
 TEST_EXIT_CODE=$?
+set -e
 
 # Output the test results for debugging
 echo "$TEST_OUTPUT"

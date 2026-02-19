@@ -1,11 +1,14 @@
 import base64
+import json
 from enum import IntEnum
+from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 from uuid import uuid4
 
 import docker
 import requests
+from datasets import load_dataset
 from docker.errors import DockerException
 from fastapi import HTTPException
 
@@ -25,6 +28,60 @@ class CustomExitCode(IntEnum):
 
 
 CUSTOM_ERROR_MESSAGES = {CustomExitCode.Timeout: "Timeout waiting for the program"}
+
+
+JULIET_JAVA_DATASET_PATH = (
+    Path(__file__).resolve().parents[1] / "docker" / "juliet-java-env" / "dataset"
+)
+
+
+@lru_cache(maxsize=1)
+def _load_juliet_java_secure_dataset():
+    return load_dataset(str(JULIET_JAVA_DATASET_PATH), split="java_secure_coding")
+
+
+@lru_cache(maxsize=1)
+def _load_juliet_java_patch_dataset():
+    return load_dataset(str(JULIET_JAVA_DATASET_PATH), split="java_patch_generation")
+
+
+@lru_cache(maxsize=1)
+def _build_juliet_java_secure_index():
+    dataset = _load_juliet_java_secure_dataset()
+    return {dataset[i]["id"]: i for i in range(len(dataset))}
+
+
+@lru_cache(maxsize=1)
+def _build_juliet_java_patch_index():
+    dataset = _load_juliet_java_patch_dataset()
+    return {dataset[i]["id"]: i for i in range(len(dataset))}
+
+
+def _extract_unit_test(meta_data):
+    if isinstance(meta_data, str):
+        meta_data = json.loads(meta_data)
+    if isinstance(meta_data, dict):
+        return meta_data.get("unit_test", "")
+    return ""
+
+
+def _get_juliet_java_secure_task_artifacts(task_id: str):
+    index = _build_juliet_java_secure_index().get(task_id)
+    if index is None:
+        raise FileNotFoundError(f"Task id not found in java_secure_coding split: {task_id}")
+    row = _load_juliet_java_secure_dataset()[index]
+    template_code = row.get("context", "")
+    unit_test = _extract_unit_test(row.get("meta_data", ""))
+    return template_code, unit_test
+
+
+def _get_juliet_java_patch_task_test(task_id: str):
+    index = _build_juliet_java_patch_index().get(task_id)
+    if index is None:
+        raise FileNotFoundError(f"Task id not found in java_patch_generation split: {task_id}")
+    row = _load_juliet_java_patch_dataset()[index]
+    unit_test = _extract_unit_test(row.get("meta_data", ""))
+    return unit_test
 
 
 def _post_process_result(res: dict):
@@ -107,6 +164,14 @@ def run_juliet_java_container(
         solution_code = solution_path.read_text()
         print(f"[DEBUG] Solution code length: {len(solution_code)} characters")
 
+        use_legacy_dataset_files = True
+        try:
+            template_code, unit_test_code = _get_juliet_java_secure_task_artifacts(task_id)
+            if template_code and unit_test_code:
+                use_legacy_dataset_files = False
+        except Exception as e:
+            print(f"[DEBUG] Failed loading parquet task artifacts, trying legacy files: {e}")
+
         # Use the same Docker testing logic as our original implementation
         client = docker.from_env()
         container = None
@@ -117,12 +182,28 @@ def run_juliet_java_container(
                 "ascii"
             )
 
-            # Run Docker command using juliet-java-local image
-            cmd = [
-                "bash",
-                "-c",
-                f"echo '{encoded_solution}' | base64 -d > /workspace/solution.java && cd /workspace && /usr/local/bin/compile-and-test.sh {masked_file} {test_file} solution.java",
-            ]
+            if use_legacy_dataset_files:
+                cmd = [
+                    "bash",
+                    "-c",
+                    f"echo '{encoded_solution}' | base64 -d > /workspace/solution.java && cd /workspace && /usr/local/bin/compile-and-test.sh {masked_file} {test_file} solution.java",
+                ]
+            else:
+                encoded_template = base64.b64encode(template_code.encode("utf-8")).decode("ascii")
+                encoded_test = base64.b64encode(unit_test_code.encode("utf-8")).decode("ascii")
+                cmd = [
+                    "bash",
+                    "-c",
+                    " && ".join(
+                        [
+                            f"echo '{encoded_template}' | base64 -d > /workspace/template.java",
+                            f"echo '{encoded_test}' | base64 -d > /workspace/test.java",
+                            f"echo '{encoded_solution}' | base64 -d > /workspace/solution.java",
+                            "cd /workspace",
+                            "/usr/local/bin/compile-and-test.sh template.java test.java solution.java",
+                        ]
+                    ),
+                ]
 
             container = client.containers.run(
                 image=image,
@@ -140,13 +221,23 @@ def run_juliet_java_container(
                 docker_output = b"".join(out)
 
         except requests.exceptions.ReadTimeout:
+            print("[DEBUG] Java test timed out while waiting for Docker API response")
+            return CustomExitCode.Timeout, b"Timeout waiting for Java test"
+        except requests.exceptions.RequestException as e:
+            # Docker SDK sometimes wraps API read timeouts as generic request exceptions.
+            if "Read timed out" in str(e):
+                print(f"[DEBUG] Java test request timeout: {e}")
+                return CustomExitCode.Timeout, b"Timeout waiting for Java test"
             raise HTTPException(
-                status_code=500, detail="Timeout waiting for Java test"
+                status_code=500, detail=f"Unexpected Java test request error: {e}"
             ) from None
         except DockerException as e:
             print(f"[DEBUG] Docker error: {str(e)}")
             return CustomExitCode.Timeout, str(e).encode("utf-8")
         except Exception as e:
+            if "Read timed out" in str(e):
+                print(f"[DEBUG] Java test timeout from generic exception: {e}")
+                return CustomExitCode.Timeout, b"Timeout waiting for Java test"
             raise HTTPException(
                 status_code=500, detail=f"Unexpected Java test error: {e}"
             ) from None
@@ -214,6 +305,14 @@ def run_juliet_java_patch_container(
         patched_code = solution_path.read_text()
         print(f"[DEBUG] Patched code length: {len(patched_code)} characters")
 
+        use_legacy_dataset_files = True
+        try:
+            unit_test_code = _get_juliet_java_patch_task_test(task_id)
+            if unit_test_code:
+                use_legacy_dataset_files = False
+        except Exception as e:
+            print(f"[DEBUG] Failed loading parquet patch artifacts, trying legacy files: {e}")
+
         # Use Docker to test the complete patched file
         client = docker.from_env()
         container = None
@@ -224,12 +323,26 @@ def run_juliet_java_patch_container(
                 "ascii"
             )
 
-            # Run Docker command using compile-and-test-patch.sh script
-            cmd = [
-                "bash",
-                "-c",
-                f"echo '{encoded_patched}' | base64 -d > /workspace/patched.java && cd /workspace && /usr/local/bin/compile-and-test-patch.sh {test_file} patched.java",
-            ]
+            if use_legacy_dataset_files:
+                cmd = [
+                    "bash",
+                    "-c",
+                    f"echo '{encoded_patched}' | base64 -d > /workspace/patched.java && cd /workspace && /usr/local/bin/compile-and-test-patch.sh {test_file} patched.java",
+                ]
+            else:
+                encoded_test = base64.b64encode(unit_test_code.encode("utf-8")).decode("ascii")
+                cmd = [
+                    "bash",
+                    "-c",
+                    " && ".join(
+                        [
+                            f"echo '{encoded_test}' | base64 -d > /workspace/test.java",
+                            f"echo '{encoded_patched}' | base64 -d > /workspace/patched.java",
+                            "cd /workspace",
+                            "/usr/local/bin/compile-and-test-patch.sh test.java patched.java",
+                        ]
+                    ),
+                ]
 
             container = client.containers.run(
                 image=image,
@@ -247,9 +360,24 @@ def run_juliet_java_patch_container(
 
             return exit_code, b"".join(outputs)
 
+        except requests.exceptions.ReadTimeout:
+            print("[DEBUG] Java patch test timed out while waiting for Docker API response")
+            return CustomExitCode.Timeout, b"Timeout waiting for Java patch test"
+        except requests.exceptions.RequestException as e:
+            if "Read timed out" in str(e):
+                print(f"[DEBUG] Java patch test request timeout: {e}")
+                return CustomExitCode.Timeout, b"Timeout waiting for Java patch test"
+            print(f"[DEBUG] Java patch request error: {e}")
+            return 1, f"Unexpected Java patch request error: {e}".encode("utf-8")
         except DockerException as e:
             print(f"[DEBUG] Docker error in patch container: {str(e)}")
             return CustomExitCode.Timeout, str(e).encode("utf-8")
+        except Exception as e:
+            if "Read timed out" in str(e):
+                print(f"[DEBUG] Java patch timeout from generic exception: {e}")
+                return CustomExitCode.Timeout, b"Timeout waiting for Java patch test"
+            print(f"[DEBUG] Unexpected Java patch test error: {e}")
+            return 1, f"Unexpected Java patch test error: {e}".encode("utf-8")
         finally:
             # Clean up the container if it exists
             if container:

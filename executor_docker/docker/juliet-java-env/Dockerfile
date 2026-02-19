@@ -1,4 +1,4 @@
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jdk-jammy
 
 # install necessary packages
 RUN apt-get update && apt-get install -y \
@@ -38,7 +38,7 @@ RUN chmod +x /usr/local/bin/*.sh
 # environment variables
 ENV MAVEN_OPTS="-Xmx512m"
 ENV JAVA_TOOL_OPTIONS="-Xmx512m"
-ENV JAVA_HOME=/usr/local/openjdk-17
+ENV JAVA_HOME=/opt/java/openjdk
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
 RUN mkdir -p /tmp/java-eval
